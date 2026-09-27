@@ -2,12 +2,12 @@ package com.example.mypl.User;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Optional;
 
@@ -37,6 +37,20 @@ public class UserController {
         return "/singup.html";
     }
 
+    @GetMapping("/login")
+    public String login(Model model) {
+        return "/login.html";
+    }
+
+    @GetMapping("/LGUS")
+    @ResponseBody
+    public String LGUS(Authentication authentication) throws Exception {
+        if (authentication == null) {
+            return "유저업음";
+        }
+        authentication.getAuthorities().toString();
+        return authentication.getName();
+    }
 
 
 }
