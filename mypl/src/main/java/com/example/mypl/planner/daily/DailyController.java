@@ -14,6 +14,12 @@ public class DailyController {
 
     private final DailyService dailyService;
 
+    @GetMapping
+    public DailyDTO getDaily(@AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam java.time.LocalDate date) {
+        return dailyService.getDaily(userDetails.getUsername(), date);
+    }
+
     // 데일리 플래너 저장 (또는 수정)
     @PostMapping
     public ResponseEntity<String> saveDaily(

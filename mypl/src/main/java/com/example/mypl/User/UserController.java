@@ -1,56 +1,43 @@
 package com.example.mypl.User;
 
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Optional;
-
 @Controller
 @RequiredArgsConstructor
 public class UserController {
-
-    //private final UserRepository userRepository;
     private final UserService userService;
 
+    @GetMapping("/")
+    public String landing() { return "landing"; }
+
     @GetMapping("/home")
-    public String home(Model model){
-        return "home.html";
+    public String home() { return "home"; }
+
+    @GetMapping({"/signup", "/singup"})
+    public String signup(Model model) {
+        model.addAttribute("form", new SignupForm());
+        return "singup";
     }
 
-    @Transactional
     @PostMapping("/adduser")
-    public String singUp(@ModelAttribute UserEntity user) throws Exception{
-
-        userService.singUp(user);
-
-        return "redirect:/home";
-    }
-
-    @GetMapping("/singup")
-    public String singup(Model model) {
-        return "/singup.html";
+    public String signup(@ModelAttribute("form") SignupForm form, Model model) {
+        try {
+            userService.register(form);
+            return "redirect:/login?registered";
+        } catch (IllegalArgumentException exception) {
+            model.addAttribute("error", exception.getMessage());
+        } catch (DataIntegrityViolationException exception) {
+            model.addAttribute("error", "이미 사용 중인 아이디 또는 닉네임이에요.");
+        }
+        form.setPassword(null);
+        form.setPasswordConfirm(null);
+        return "singup";
     }
 
     @GetMapping("/login")
-    public String login(Model model) {
-        return "/login.html";
-    }
-
-    @GetMapping("/LGUS")
-    @ResponseBody
-    public String LGUS(Authentication authentication) throws Exception {
-        if (authentication == null) {
-            return "유저업음";
-        }
-        authentication.getAuthorities().toString();
-        return authentication.getName();
-    }
-
-
+    public String login() { return "login"; }
 }

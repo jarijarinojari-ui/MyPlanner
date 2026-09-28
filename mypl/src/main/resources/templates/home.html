@@ -1,10 +1,21 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
-
-</body>
-</html>
+<html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>마이플래너 · 오늘의 기록</title><link rel="stylesheet" href="/planner.css"><script src="/planner.js" defer></script><script src="/weekly.js" defer></script></head>
+<body><header><a class="brand" href="/">my planner<span>나의 속도로 채우는 하루</span></a><a href="/logout">로그아웃</a></header>
+<main><aside class="paper schedule">
+<div class="schedule-title"><p class="eyebrow">MY SCHEDULE</p><button id="toggle-view" aria-pressed="false">월간으로 변경</button></div>
+<div id="weekly-view">
+<div class="month-nav"><button id="prev-week" aria-label="이전 주">←</button><h2 id="week-label"></h2><button id="next-week" aria-label="다음 주">→</button></div>
+<p class="hint">클릭: 1시간 · 두 번 클릭: 30분 · 위아래 드래그로 조절</p>
+<div class="week-scroll"><div id="week-grid"></div></div>
+<div class="week-footer"><button id="this-week">이번 주</button><button id="save-week" class="primary">주간 기록 저장</button></div>
+<p id="week-status" role="status" aria-live="polite"></p><button id="retry-week" hidden>다시 불러오기</button>
+</div>
+<div id="monthly-view" hidden><div class="month-nav"><button id="prev-month" aria-label="이전 달">←</button><h2 id="month-label"></h2><button id="next-month" aria-label="다음 달">→</button></div><div class="weekdays"><span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span></div><div id="calendar" aria-label="날짜 선택"></div><p id="month-status" role="status" aria-live="polite"></p><button id="retry-month" hidden>일정 다시 불러오기</button><button id="today" class="today">오늘로 돌아가기</button><p class="hint">날짜: 일일 기록 · +: 일정 추가 · 2개 표시, 나머지는 더보기</p></div>
+</aside>
+<section class="paper daily"><div class="daily-heading"><div><p class="eyebrow">DAILY PLAN</p><h2 id="day-label">오늘의 기록</h2></div><input id="date" type="date" aria-label="기록 날짜" required></div><fieldset id="editor" disabled>
+<section><div class="section-heading"><h3>오늘의 목표</h3><span>오늘 가장 중요하게 생각하는 것</span></div><div id="goals"></div><button class="add" data-add="goals">+ 목표 추가</button></section>
+<section><div class="section-heading"><h3>오늘 할 일</h3><span id="progress">0 / 0 완료</span></div><div id="todos"></div><button class="add" data-add="todos">+ 할 일 추가</button></section>
+<section><h3><label for="memo">Memo</label></h3><textarea id="memo" maxlength="10000" placeholder="오늘의 생각, 기억하고 싶은 순간을 자유롭게 적어보세요."></textarea></section>
+<div class="save-row"><span id="status" role="status" aria-live="polite">불러오는 중…</span><button id="save" class="primary">오늘의 기록 저장</button></div></fieldset><button id="retry" hidden>다시 불러오기</button></section></main><dialog id="month-dialog" aria-labelledby="month-dialog-title">
+<form id="month-form"><h2 id="month-dialog-title">일정 편집</h2><p class="hint">하루 최대 5개 · 일정당 20자</p><div id="month-inputs"></div><button type="button" id="add-month-item">+ 일정 추가</button><p id="month-dialog-status" role="status"></p><div class="month-dialog-actions"><button type="button" id="cancel-month">취소</button><button type="submit" id="save-month" class="primary">일정 저장</button></div></form>
+</dialog></body></html>

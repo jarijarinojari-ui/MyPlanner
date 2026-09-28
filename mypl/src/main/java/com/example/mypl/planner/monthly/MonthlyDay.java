@@ -1,4 +1,4 @@
-package com.example.mypl.planner.daily;
+package com.example.mypl.planner.monthly;
 
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -10,19 +10,17 @@ import java.util.List;
 @Entity
 @Getter @Setter
 @Table(uniqueConstraints = @UniqueConstraint(columnNames = {"username", "planDate"}))
-public class DailyEntity {
+public class MonthlyDay {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    @Version
+    private Long version;
     @Column(nullable = false)
     private String username;
     @Column(nullable = false)
     private LocalDate planDate;
-
-    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
-    @JoinColumn(name = "daily_id")
-    @OrderBy("id ASC")
-    private List<PlanEntity> items = new ArrayList<>();
-
-    @Column(length = 10000)
-    private String memo;
+    @ElementCollection
+    @OrderColumn(name = "position")
+    @Column(name = "title", length = 80, nullable = false)
+    private List<String> titles = new ArrayList<>();
 }

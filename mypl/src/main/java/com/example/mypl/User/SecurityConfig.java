@@ -21,14 +21,23 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.csrf((csrf -> csrf.disable()));
         http.authorizeHttpRequests((authorize) ->
-                authorize.requestMatchers("/**").permitAll()
+                authorize.requestMatchers("/api/daily/**", "/api/weekly/**", "/api/monthly/**", "/home").authenticated()
+                        .anyRequest().permitAll()
         );
+        http.exceptionHandling(errors -> errors.authenticationEntryPoint((request, response, exception) -> {
+            if (request.getRequestURI().startsWith("/api/")) {
+                response.sendError(401);
+            } else {
+                new org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint("/login")
+                        .commence(request, response, exception);
+            }
+        }));
         http.formLogin((formLogin)
                 -> formLogin.loginPage("/login")
-                .defaultSuccessUrl("/home")
+                .defaultSuccessUrl("/home", true)
 
         );
-        http.logout( logout -> logout.logoutUrl("/logout") );
+        http.logout( logout -> logout.logoutUrl("/logout").logoutSuccessUrl("/login?logout") );
         return http.build();
     }
 }
