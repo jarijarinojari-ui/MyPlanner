@@ -1,24 +1,33 @@
 (() => {
+    const t = window.plannerI18n.t;
     const $ = id => document.getElementById(id);
     const START = 300, END = 1620, SLOT = 30;
-    let HEIGHT = Math.max(10, Math.min(22, (window.innerHeight - 310) / 32));
+    let HEIGHT = 14;
     const scroller = document.querySelector('.week-scroll');
     function sizeWeek(reset = false) {
-        HEIGHT = Math.max(10, Math.min(22, (window.innerHeight - 310) / 32));
+        if (!scroller.clientHeight) return;
+        HEIGHT = Math.max(6, (scroller.clientHeight - 52) / 32);
         document.documentElement.style.setProperty('--slot-height', `${HEIGHT}px`);
-        scroller.style.height = `${32 * HEIGHT + 52}px`;
+        document.querySelectorAll('.time-axis span').forEach((label, index) => {
+            label.style.top = `${index * 2 * HEIGHT}px`;
+        });
+        document.querySelectorAll('.time-block').forEach(element => {
+            const block = blocks[Number(element.dataset.index)];
+            if (block) position(element, block);
+        });
+        if (pending) { const element = document.querySelector('.time-selection'); if (element) position(element,pending); }
         if (reset) scroller.scrollTop = Math.max(0, 6 * HEIGHT - 8);
     }
-    sizeWeek();
     const key = date => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
     const shift = (date, days) => { const value = new Date(`${date}T12:00:00`); value.setDate(value.getDate() + days); return key(value); };
     const monday = date => shift(date, -((new Date(`${date}T12:00:00`).getDay() + 6) % 7));
-    const time = minute => `${minute >= 1440 ? '다음 날 ' : ''}${String(Math.floor(minute / 60) % 24).padStart(2, '0')}:${String(minute % 60).padStart(2, '0')}`;
+    const time = minute => `${minute >= 1440 ? t('다음 날 ') : ''}${String(Math.floor(minute / 60) % 24).padStart(2, '0')}:${String(minute % 60).padStart(2, '0')}`;
     let week = monday(key(new Date())), blocks = [], dirty = false, busy = true, ready = false;
+    let pending = null;
     let lastTap = null, selectedDate = key(new Date());
     window.addEventListener('planner-date-selected', event => { selectedDate = event.detail; });
     const status = message => { $('week-status').textContent = message; };
-    const changed = () => { dirty = true; status('저장하지 않은 주간 기록이 있어요.'); };
+    const changed = () => { dirty = true; status(t('저장하지 않은 주간 기록이 있어요.')); };
     const overlaps = (block, start, end) => blocks.some(other => other !== block && other.planDate === block.planDate && start < other.endMinute && end > other.startMinute);
     function position(element, block) {
         element.style.top = `${(block.startMinute - START) / SLOT * HEIGHT}px`;
@@ -31,12 +40,12 @@
         if (overlaps(block, start, end)) return;
         if (start === block.startMinute && end === block.endMinute) return;
         block.startMinute = start; block.endMinute = end; position(element, block); changed();
-        status(`${time(start)} ~ ${time(end)} · 저장하지 않은 변경 사항`);
+        status(`${time(start)} ~ ${time(end)} · ${t('저장하지 않은 변경 사항')}`);
     }
     function blockElement(block) {
         const element = document.createElement('div'); element.className = 'time-block'; position(element, block);
-        const input = document.createElement('input'); input.value = block.memo; input.placeholder = '무엇을 했나요?';
-        input.setAttribute('aria-label', `${block.planDate} ${time(block.startMinute)} 메모, 최대 20자`);
+        const input = document.createElement('input'); input.value = block.memo; input.placeholder = t('무엇을 했나요?');
+        input.setAttribute('aria-label', t('{date} {time} 메모, 최대 20자', {date:block.planDate,time:time(block.startMinute)}));
         input.oninput = event => {
             if (event.isComposing) return;
             input.value = Array.from(input.value).slice(0, 20).join(''); block.memo = input.value; changed();
@@ -51,12 +60,12 @@
             if (lastTap?.block === block && now - lastTap.at < 350) { shrink(); lastTap = null; }
             else lastTap = { block, at: now };
         });
-        const remove = document.createElement('button'); remove.className = 'delete-block'; remove.textContent = '×'; remove.setAttribute('aria-label', '시간 블록 삭제');
+        const remove = document.createElement('button'); remove.className = 'delete-block'; remove.textContent = '×'; remove.setAttribute('aria-label', t('시간 블록 삭제'));
         remove.onclick = event => { event.stopPropagation(); blocks.splice(blocks.indexOf(block), 1); changed(); render(); };
         element.append(input, remove);
         for (const edge of ['start', 'end']) {
             const handle = document.createElement('button'); handle.className = `resize-handle ${edge}`;
-            handle.setAttribute('aria-label', `${edge === 'start' ? '시작' : '종료'} 시간 조절. 위아래 방향키로 30분씩 변경`);
+            handle.setAttribute('aria-label', t(edge === 'start' ? '시작 시간 조절. 위아래 방향키로 30분씩 변경' : '종료 시간 조절. 위아래 방향키로 30분씩 변경'));
             handle.onclick = event => event.stopPropagation();
             handle.ondblclick = event => event.stopPropagation();
             handle.onkeydown = event => {
@@ -91,13 +100,18 @@
     function render() {
         $('week-label').textContent = `${week.replaceAll('-', '.')} – ${shift(week, 6).slice(5).replace('-', '.')}`;
         for (const id of ['prev-week', 'next-week', 'this-week']) $(id).disabled = busy;
-        $('save-week').disabled = busy || !ready;
+        $('save-week').disabled = busy || !ready || !!pending;
+        $('week-draft').hidden = !pending;
+        if (pending) {
+            $('week-draft-time').textContent = `${pending.planDate} ${time(pending.startMinute)}–${time(pending.endMinute)}`;
+            $('week-draft-memo').value = pending.memo;
+        }
         const grid = $('week-grid'); grid.replaceChildren();
-        const corner = document.createElement('div'); corner.className = 'week-corner'; corner.textContent = '시간'; grid.append(corner);
-        const days = ['월', '화', '수', '목', '금', '토', '일'];
+        const corner = document.createElement('div'); corner.className = 'week-corner'; corner.textContent = t('시간'); grid.append(corner);
+        const days = Array.from({length:7}, (_,i) => new Intl.DateTimeFormat(window.plannerI18n.locale(), {weekday:'short'}).format(new Date(`${shift(week,i)}T12:00:00`)));
         for (let day = 0; day < 7; day++) {
             const date = shift(week, day), header = document.createElement('button'); header.className = 'week-day';
-            header.textContent = `${days[day]} ${Number(date.slice(8))}`; header.setAttribute('aria-label', `${date} 일일 기록 열기`);
+            header.textContent = `${days[day]} ${Number(date.slice(8))}`; header.setAttribute('aria-label', t('{date} 일일 기록 열기', {date}));
             header.onclick = () => window.dispatchEvent(new CustomEvent('planner-select-date', { detail: date })); grid.append(header);
         }
         const axis = document.createElement('div'); axis.className = 'time-axis';
@@ -110,17 +124,26 @@
             const date = shift(week, day), column = document.createElement('div'); column.className = 'day-column';
             for (let minute = START; minute < END; minute += SLOT) {
                 const slot = document.createElement('button'); slot.className = 'time-slot'; slot.disabled = busy || !ready;
-                slot.setAttribute('aria-label', `${date} ${time(minute)} 블록 추가`);
+                slot.setAttribute('aria-label', t('{date} {time} 시간 선택', {date,time:time(minute)}));
                 slot.onclick = () => {
                     // The last half-hour uses the final full hour so a new block is always one hour.
                     const start = Math.min(minute, END - 60);
                     const block = { planDate: date, startMinute: start, endMinute: start + 60, memo: '' };
-                    if (overlaps(block, start, start + 60)) { status('이미 기록한 시간과 겹쳐요. 다른 시간대를 선택해 주세요.'); return; }
-                    blocks.push(block); changed(); render();
-                    const created = $('week-grid').querySelectorAll('.time-block');
-                    [...created].find(item => item.dataset.index === String(blocks.indexOf(block)))?.querySelector('input').focus();
+                    if (overlaps(block, start, start + 60)) { status(t('이미 기록한 시간과 겹쳐요. 다른 시간대를 선택해 주세요.')); return; }
+                    if (pending?.planDate === date && pending.startMinute === start) {
+                        cancelSelection(); return;
+                    }
+                    pending = block; render();
+                    status(t('일정 내용을 입력한 뒤 추가해 주세요.'));
                 };
                 column.append(slot);
+            }
+            if (pending?.planDate === date) {
+                const selection = document.createElement('button'); selection.className = 'time-selection';
+                selection.setAttribute('aria-label', t('선택 취소'));
+                selection.setAttribute('aria-pressed', 'true');
+                selection.textContent = `${time(pending.startMinute)} – ${time(pending.endMinute)}`;
+                position(selection, pending); selection.onclick = cancelSelection; column.append(selection);
             }
             blocks.filter(block => block.planDate === date).forEach(block => {
                 const element = blockElement(block); element.dataset.index = blocks.indexOf(block);
@@ -131,21 +154,40 @@
     }
     async function request(options, start = week) {
         const response = await fetch(`/api/weekly?start=${start}`, options);
-        if (response.status === 401 || response.redirected) throw new Error('다시 로그인해 주세요. 현재 입력한 기록은 화면에 남아 있어요.');
-        if (!response.ok) throw new Error('주간 기록 요청에 실패했어요. 연결을 확인하고 다시 시도해 주세요.');
+        if (response.status === 401 || response.redirected) throw new Error(t('다시 로그인해 주세요. 현재 입력한 기록은 화면에 남아 있어요.'));
+        if (!response.ok) throw new Error(t('주간 기록 요청에 실패했어요. 연결을 확인하고 다시 시도해 주세요.'));
         return response;
     }
     async function load(start) {
-        if (dirty && !confirm('저장하지 않은 주간 기록을 버리고 이동할까요?')) return false;
-        busy = true; render(); status('주간 기록을 불러오는 중…'); $('retry-week').hidden = true;
+        if ((dirty || pending?.memo) && !confirm(t('저장하지 않은 주간 기록을 버리고 이동할까요?'))) return false;
+        busy = true; render(); status(t('주간 기록을 불러오는 중…')); $('retry-week').hidden = true;
         try {
             const response = await request(undefined, start); const loaded = await response.json();
-            blocks = loaded; week = start; dirty = false; ready = true; status('05:00부터 다음 날 03:00까지 · 30분 단위'); return true;
+            pending = null; blocks = loaded; week = start; dirty = false; ready = true; status(t('05:00부터 다음 날 03:00까지 · 30분 단위')); return true;
         } catch (error) { status(error.message); $('retry-week').hidden = false; return false; }
         finally { busy = false; render(); requestAnimationFrame(() => sizeWeek(true)); }
     }
+    function cancelSelection() {
+        pending = null; render(); status(t('시간 선택을 취소했어요.'));
+    }
+    $('cancel-week-draft').onclick = cancelSelection;
+    $('week-draft-memo').oninput = event => {
+        if (!pending || event.isComposing) return;
+        event.target.value = Array.from(event.target.value).slice(0,20).join(''); pending.memo = event.target.value;
+    };
+    $('week-draft-memo').addEventListener('compositionend', event => $('week-draft-memo').oninput(event));
+    $('week-draft').onsubmit = event => {
+        event.preventDefault();
+        if (!pending || busy) return;
+        if (!pending.memo.trim()) { status(t('일정 내용을 입력한 뒤 추가해 주세요.')); $('week-draft-memo').focus(); return; }
+        pending.memo = pending.memo.trim(); blocks.push(pending); pending = null; changed(); render();
+    };
+    $('week-draft').addEventListener('keydown', event => {
+        if (event.key === 'Escape') { event.preventDefault(); cancelSelection(); }
+    });
     $('save-week').onclick = async () => {
-        busy = true; render(); status('주간 기록을 저장하는 중…');
+        if (pending) { status(t('선택한 일정을 추가하거나 취소해 주세요.')); return; }
+        busy = true; render(); status(t('주간 기록을 저장하는 중…'));
         try {
             await request({ method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(blocks) });
             dirty = false; status(window.plannerSavedAt());
@@ -163,14 +205,19 @@
             $('toggle-view').disabled = true;
             const success = await load(monday(selectedDate));
             $('toggle-view').disabled = false;
-            if (!success) { window.alert('주간 전환을 완료하지 못했어요. 주간 기록의 변경 사항 또는 연결 상태를 확인해 주세요.'); return; }
+            if (!success) { window.alert(t('주간 전환을 완료하지 못했어요. 주간 기록의 변경 사항 또는 연결 상태를 확인해 주세요.')); return; }
         }
         $('monthly-view').hidden = !monthly; $('weekly-view').hidden = monthly;
-        $('toggle-view').textContent = monthly ? '주간으로 변경' : '월간으로 변경';
+        $('toggle-view').textContent = monthly ? t('주간으로 변경') : t('월간으로 변경');
         $('toggle-view').setAttribute('aria-pressed', String(monthly));
         if (!monthly) requestAnimationFrame(() => sizeWeek(true));
     };
-    window.addEventListener('beforeunload', event => { if (dirty) { event.preventDefault(); event.returnValue = ''; } });
-    window.addEventListener('resize', () => { sizeWeek(); render(); sizeWeek(true); });
+    window.addEventListener('beforeunload', event => { if (dirty || pending?.memo) { event.preventDefault(); event.returnValue = ''; } });
+    new ResizeObserver(() => sizeWeek(true)).observe(scroller);
+    window.addEventListener('planner-language-change', () => {
+        render();
+        $('toggle-view').textContent = $('monthly-view').hidden ? t('월간으로 변경') : t('주간으로 변경');
+        requestAnimationFrame(() => sizeWeek());
+    });
     load(week);
 })();

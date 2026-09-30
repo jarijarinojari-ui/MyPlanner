@@ -1,6 +1,8 @@
 package com.example.mypl.User;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -12,7 +14,9 @@ public class UserController {
     private final UserService userService;
 
     @GetMapping("/")
-    public String landing() { return "landing"; }
+    public String landing(Authentication authentication) {
+        return signedIn(authentication) ? "redirect:/home" : "landing";
+    }
 
     @GetMapping("/home")
     public String home() { return "home"; }
@@ -39,5 +43,12 @@ public class UserController {
     }
 
     @GetMapping("/login")
-    public String login() { return "login"; }
+    public String login(Authentication authentication) {
+        return signedIn(authentication) ? "redirect:/home" : "login";
+    }
+
+    private boolean signedIn(Authentication authentication) {
+        return authentication != null && authentication.isAuthenticated()
+                && !(authentication instanceof AnonymousAuthenticationToken);
+    }
 }
