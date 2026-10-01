@@ -1,7 +1,6 @@
 :root{--page:#f2f1ed;--surface:#fffefa;--text:#343c46;--muted:#69788d;--line:#dce1e8;--soft:#f1f4f8;--accent:#7084a5;--block:#dfe8f4;--block-text:#3f526e;color-scheme:light}
 :root[data-theme=dark]{--page:#151b24;--surface:#202936;--text:#e2e8f1;--muted:#aab8cb;--line:#3a475a;--soft:#293447;--accent:#9ab5df;--block:#344c70;--block-text:#e6efff;color-scheme:dark}
 html{background:var(--page);color:var(--text)}body{background:var(--page);color:var(--text)}.preferences{display:flex;align-items:center;gap:8px;flex:none}.preferences select,.preferences button{height:34px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--text);font:inherit;font-size:12px}.preferences select{max-width:112px;padding:4px 8px}.preferences button{width:36px;font-size:19px;padding:0}.site-header{flex-wrap:wrap}.site-header .preferences{margin-left:8px}body>header{gap:16px}body>header>.brand{margin-right:auto}body>header>a:last-of-type:not(.brand){margin-left:auto;font-size:12px}.preferences select:focus-visible,.preferences button:focus-visible{outline:2px solid var(--accent)}
-#week-draft{display:grid;flex:none;grid-template-columns:minmax(0,1fr) auto auto;gap:6px;margin:4px 0 8px;padding:8px;background:var(--soft);border:1px solid var(--line);border-radius:6px}#week-draft[hidden]{display:none}#week-draft-time{grid-column:1/-1;font-size:11px;color:var(--muted)}#week-draft input{width:100%;min-width:0;border:1px solid var(--line);background:var(--surface);color:var(--text);padding:7px;border-radius:4px;font:inherit;font-size:12px}#week-draft button{font-size:12px;padding:6px 10px}#confirm-week-draft{background:var(--accent);color:var(--surface)}.time-selection{position:absolute;left:2px;right:2px;z-index:2;min-height:0;border:1px dashed #4d76b0;border-radius:4px;background:#9bbce8b3;color:#163e72;font-size:10px;line-height:1;padding:0;overflow:hidden;white-space:nowrap;touch-action:manipulation}.time-selection:hover{background:#83ace0}.week-day,.time-slot,.month-date,.month-add{touch-action:manipulation}
 /* Theme overrides cover planner, public pages, forms, dialogs and overflow areas. */
 [data-theme=dark] .paper,[data-theme=dark] .auth-card,[data-theme=dark] .notebook,[data-theme=dark] #month-dialog{background:var(--surface);color:var(--text);border-color:var(--line);box-shadow:0 10px 35px #0003}
 [data-theme=dark] button,[data-theme=dark] input,[data-theme=dark] textarea,[data-theme=dark] select{color:var(--text);border-color:var(--line)}
@@ -24,3 +23,19 @@ html{background:var(--page);color:var(--text)}body{background:var(--page);color:
 @media(max-width:900px){body:has(.schedule)>header{padding:8px 12px;gap:10px}body:has(.schedule) .brand{font-size:22px}body:has(.schedule) .brand span{display:none}.panel-tabs{display:flex;flex:none;padding:0 12px 8px;gap:8px}.panel-tabs button{flex:1;padding:8px;font-size:12px}.panel-tabs button[aria-pressed=true]{background:#7084a5;color:white;border-color:#7084a5}body>main:has(.schedule){grid-template-columns:minmax(0,1fr)}.paper.daily{display:none}body.show-daily .paper.daily{display:flex}body.show-daily .paper.schedule{display:none}#week-grid{min-width:640px;grid-template-columns:48px repeat(7,minmax(84px,1fr))}.week-corner{left:0;z-index:5}.time-axis{position:sticky;left:0;z-index:3}.day-navigation{margin-left:auto}.daily-heading{flex-wrap:nowrap}.site-header{padding:16px 20px;gap:12px}.site-header nav{gap:14px}.site-header .preferences{margin-left:auto}}
 @media(max-width:480px){body:has(.schedule)>header{gap:7px}.preferences{gap:5px}.preferences select{max-width:84px;padding:3px 4px;font-size:11px}.preferences button{width:31px}.brand{font-size:21px}body>header>a:last-of-type:not(.brand){font-size:11px}.site-header .brand span{display:none}.site-header nav{order:3;width:100%;justify-content:flex-end}.site-header>.text-link{order:3;width:100%;text-align:right}.day-navigation{gap:2px}.day-navigation input{width:117px}.daily-heading h2{font-size:14px}.section-heading span{max-width:145px;text-align:right}.month-day,.month-empty{padding:2px}#calendar .month-event{font-size:10px}.month-day-heading{gap:0}.time-block input{font-size:11px}.auth-card{padding:22px}.hero-actions{flex-wrap:wrap}#week-draft{gap:5px}}
 @media(max-height:500px) and (max-width:900px){.panel-tabs{padding-bottom:4px}.panel-tabs button{padding:4px}body:has(.schedule)>header{padding-top:4px;padding-bottom:4px}#week-draft{padding:4px;margin:2px 0}#week-draft-time{font-size:10px}}
+
+/* Direct editing keeps text focus while drag handles adjust the same block. */
+.week-scroll{overflow-anchor:none}
+.time-block{overflow:visible;z-index:2}.time-block:focus-within{z-index:4;box-shadow:0 0 0 1px var(--accent)}
+.time-block.is-draft{border-style:dashed;background:var(--block)}
+.time-block input{padding-left:15px;padding-right:15px;border-radius:3px}
+.move-block{position:absolute;left:0;top:3px;bottom:3px;width:14px;padding:0;border:0;border-radius:0;cursor:grab;touch-action:none;font-size:13px;line-height:1;color:var(--block-text)}
+.move-block:active{cursor:grabbing}.resize-handle{z-index:2;height:4px;left:14px;right:14px}
+@media(max-width:900px),(pointer:coarse){
+    /* iOS zooms focused inputs below 16px; preserve browser pinch-to-zoom. */
+    .time-block input,.month-input-row input,.item textarea,#memo{font-size:16px}
+    .time-block input{line-height:1;padding-left:17px;padding-right:16px}
+    .move-block{width:16px}.resize-handle{height:5px;left:16px;right:16px}
+}
+
+#calendar .month-more{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}

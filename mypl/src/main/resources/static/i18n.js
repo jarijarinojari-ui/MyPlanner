@@ -754,6 +754,10 @@
   }
 };
     Object.assign(messages, {
+        '로그인 상태는 30일간 유지돼요. 로그아웃하면 해제됩니다.': {ja:'ログイン状態は30日間維持されます。ログアウトすると解除されます。',en:'Stay signed in for 30 days, or until you log out.'},
+        '상자에 바로 입력 · 위아래 테두리로 크기 조절 · 왼쪽 손잡이로 이동': {ja:'枠内に直接入力 · 上下の端でサイズ変更 · 左のハンドルで移動',en:'Type in the block · Resize from its edges · Drag the left handle to move'},
+        '일정 이동. 방향키로 날짜와 시간 변경': {ja:'予定を移動。矢印キーで日付と時刻を変更',en:'Move event. Use arrow keys to change day and time'},
+        '날짜: 일일 기록 · +: 일정 추가 · 3개 표시, 나머지는 더보기': {ja:'日付：デイリー · +：予定追加 · 3件表示、残りはもっと見る',en:'Date: daily plan · +: add event · 3 shown, More for the rest'},
         'Memo':{ja:'メモ',en:'Memo'},
         '일':{ja:'日',en:'Sun'}, '월':{ja:'月',en:'Mon'}, '화':{ja:'火',en:'Tue'},
         '수':{ja:'水',en:'Wed'}, '목':{ja:'木',en:'Thu'}, '금':{ja:'金',en:'Fri'}, '토':{ja:'土',en:'Sat'}
@@ -812,6 +816,10 @@
     languageSelect.addEventListener('change', () => {
         language = languageSelect.value; remember('planner.language',language); apply();
         document.querySelectorAll('[role=status]').forEach(node => { node.textContent = currentMessage(node.textContent); });
+        window.dispatchEvent(new Event('planner-language-change'));
+    });
+    window.addEventListener('planner-country-language', event => {
+        language = event.detail; languageSelect.value = language; apply();
         window.dispatchEvent(new Event('planner-language-change'));
     });
     themeButton.addEventListener('click', () => {

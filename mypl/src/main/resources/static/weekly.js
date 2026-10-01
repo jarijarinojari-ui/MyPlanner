@@ -15,7 +15,7 @@
             const block = blocks[Number(element.dataset.index)];
             if (block) position(element, block);
         });
-        if (pending) { const element = document.querySelector('.time-selection'); if (element) position(element,pending); }
+        if (pending) { const element = document.querySelector('.time-block.is-draft'); if (element) position(element,pending); }
         if (reset) scroller.scrollTop = Math.max(0, 6 * HEIGHT - 8);
     }
     const key = date => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
@@ -28,41 +28,107 @@
     window.addEventListener('planner-date-selected', event => { selectedDate = event.detail; });
     const status = message => { $('week-status').textContent = message; };
     const changed = () => { dirty = true; status(t('저장하지 않은 주간 기록이 있어요.')); };
-    const overlaps = (block, start, end) => blocks.some(other => other !== block && other.planDate === block.planDate && start < other.endMinute && end > other.startMinute);
+    const overlaps = (block, start, end, date = block.planDate) => [...blocks, ...(pending ? [pending] : [])].some(other => other !== block && other.planDate === date && start < other.endMinute && end > other.startMinute);
     function position(element, block) {
         element.style.top = `${(block.startMinute - START) / SLOT * HEIGHT}px`;
         element.style.height = `${(block.endMinute - block.startMinute) / SLOT * HEIGHT}px`;
         element.title = `${time(block.startMinute)} ~ ${time(block.endMinute)}`;
+        element.querySelector('input')?.setAttribute('aria-label', t('{date} {time} 메모, 최대 20자', {date:block.planDate,time:time(block.startMinute)}));
     }
     function resize(block, element, edge, minute) {
         const start = edge === 'start' ? Math.max(START, Math.min(block.endMinute - SLOT, minute)) : block.startMinute;
         const end = edge === 'end' ? Math.min(END, Math.max(block.startMinute + SLOT, minute)) : block.endMinute;
         if (overlaps(block, start, end)) return;
         if (start === block.startMinute && end === block.endMinute) return;
-        block.startMinute = start; block.endMinute = end; position(element, block); changed();
+        block.startMinute = start; block.endMinute = end; position(element, block); if (block !== pending) changed();
         status(`${time(start)} ~ ${time(end)} · ${t('저장하지 않은 변경 사항')}`);
     }
     function blockElement(block) {
-        const element = document.createElement('div'); element.className = 'time-block'; position(element, block);
+        const element = document.createElement('div'); element.className = 'time-block'; element.classList.toggle('is-draft', block === pending); position(element, block);
         const input = document.createElement('input'); input.value = block.memo; input.placeholder = t('무엇을 했나요?');
         input.setAttribute('aria-label', t('{date} {time} 메모, 최대 20자', {date:block.planDate,time:time(block.startMinute)}));
         input.oninput = event => {
             if (event.isComposing) return;
-            input.value = Array.from(input.value).slice(0, 20).join(''); block.memo = input.value; changed();
+            input.value = Array.from(input.value).slice(0, 20).join(''); block.memo = input.value;
+            if (block === pending && block.memo.trim()) { blocks.push(block); pending = null; element.classList.remove('is-draft'); element.dataset.index = blocks.indexOf(block); }
+            changed();
         };
         input.addEventListener('compositionend', () => input.oninput({ isComposing: false }));
         input.onclick = event => event.stopPropagation();
-        const shrink = () => { if (!busy) { block.endMinute = block.startMinute + SLOT; position(element, block); changed(); } };
+        input.onkeydown = event => {
+            if (event.isComposing) return;
+            if (event.key === 'Escape' && block === pending) { event.preventDefault(); cancelSelection(); }
+            if (event.key === 'Enter') { event.preventDefault(); input.blur(); }
+        };
+        const shrink = () => { if (!busy) { block.endMinute = block.startMinute + SLOT; position(element, block); if (block !== pending) changed(); } };
         element.ondblclick = event => { event.preventDefault(); shrink(); };
         element.addEventListener('pointerup', event => {
-            if (event.pointerType !== 'touch' || event.target.closest('.resize-handle, .delete-block')) return;
+            if (event.pointerType !== 'touch' || event.target.closest('.resize-handle, .move-block, .delete-block')) return;
             const now = Date.now();
             if (lastTap?.block === block && now - lastTap.at < 350) { shrink(); lastTap = null; }
             else lastTap = { block, at: now };
         });
         const remove = document.createElement('button'); remove.className = 'delete-block'; remove.textContent = '×'; remove.setAttribute('aria-label', t('시간 블록 삭제'));
-        remove.onclick = event => { event.stopPropagation(); blocks.splice(blocks.indexOf(block), 1); changed(); render(); };
-        element.append(input, remove);
+        remove.onclick = event => { event.stopPropagation(); if (block === pending) { cancelSelection(); return; } blocks.splice(blocks.indexOf(block), 1); changed(); render(); };
+        const moveHandle = document.createElement('button'); moveHandle.className = 'move-block'; moveHandle.textContent = '⠿';
+        moveHandle.setAttribute('aria-label', t('일정 이동. 방향키로 날짜와 시간 변경'));
+        moveHandle.onclick = event => event.stopPropagation();
+        moveHandle.ondblclick = event => event.stopPropagation();
+        const moveBlock = (date, start) => {
+            const duration = block.endMinute - block.startMinute;
+            start = Math.max(START, Math.min(END - duration, start));
+            if (date < week || date > shift(week, 6) || overlaps(block, start, start + duration, date)) return;
+            if (block.planDate === date && block.startMinute === start) return;
+            block.planDate = date; block.startMinute = start; block.endMinute = start + duration;
+            position(element, block); if (block !== pending) changed();
+            input.setAttribute('aria-label', t('{date} {time} 메모, 최대 20자', {date,time:time(start)}));
+        };
+        const place = () => {
+            const column = document.querySelector(`.day-column[data-date="${block.planDate}"]`);
+            if (element.parentElement !== column) column.append(element);
+            element.style.transform = '';
+        };
+        moveHandle.onkeydown = event => {
+            if (busy || !['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(event.key)) return;
+            event.preventDefault();
+            moveBlock(shift(block.planDate, event.key === 'ArrowLeft' ? -1 : event.key === 'ArrowRight' ? 1 : 0),
+                block.startMinute + (event.key === 'ArrowUp' ? -SLOT : event.key === 'ArrowDown' ? SLOT : 0));
+            place(); moveHandle.focus({preventScroll:true});
+        };
+        moveHandle.onpointerdown = event => {
+            if (busy) return;
+            event.preventDefault(); event.stopPropagation();
+            const originY = event.clientY, originScroll = scroller.scrollTop, originMinute = block.startMinute;
+            const originalColumn = element.parentElement;
+            const restoreInput = document.activeElement === input;
+            let pointerX = event.clientX, pointerY = event.clientY, frame, finished = false;
+            const update = () => {
+                const columns = [...document.querySelectorAll('.day-column')];
+                const target = columns.find(column => { const bounds = column.getBoundingClientRect(); return pointerX >= bounds.left && pointerX < bounds.right; });
+                if (!target) return;
+                moveBlock(target.dataset.date, originMinute + Math.round((pointerY - originY + scroller.scrollTop - originScroll) / HEIGHT) * SLOT);
+                const current = columns.find(column => column.dataset.date === block.planDate);
+                element.style.transform = `translateX(${current.getBoundingClientRect().left - originalColumn.getBoundingClientRect().left}px)`;
+            };
+            moveHandle.setPointerCapture(event.pointerId);
+            moveHandle.onpointermove = move => { pointerX = move.clientX; pointerY = move.clientY; update(); };
+            const scroll = () => {
+                const bounds = scroller.getBoundingClientRect();
+                if (pointerY < bounds.top + 45) scroller.scrollTop -= 8;
+                else if (pointerY > bounds.bottom - 35) scroller.scrollTop += 8;
+                if (pointerX < bounds.left + 55) scroller.scrollLeft -= 8;
+                else if (pointerX > bounds.right - 25) scroller.scrollLeft += 8;
+                update(); frame = requestAnimationFrame(scroll);
+            };
+            frame = requestAnimationFrame(scroll);
+            const finish = () => {
+                if (finished) return; finished = true; cancelAnimationFrame(frame);
+                moveHandle.onpointermove = moveHandle.onpointerup = moveHandle.onpointercancel = moveHandle.onlostpointercapture = null;
+                place(); if (restoreInput) input.focus({preventScroll:true});
+            };
+            moveHandle.onpointerup = moveHandle.onpointercancel = moveHandle.onlostpointercapture = finish;
+        };
+        element.append(input, moveHandle, remove);
         for (const edge of ['start', 'end']) {
             const handle = document.createElement('button'); handle.className = `resize-handle ${edge}`;
             handle.setAttribute('aria-label', t(edge === 'start' ? '시작 시간 조절. 위아래 방향키로 30분씩 변경' : '종료 시간 조절. 위아래 방향키로 30분씩 변경'));
@@ -95,17 +161,14 @@
             };
             element.append(handle);
         }
+        element.querySelectorAll('input, button').forEach(control => { control.disabled = busy; });
         return element;
     }
     function render() {
+        const scrollTop = scroller.scrollTop, scrollLeft = scroller.scrollLeft;
         $('week-label').textContent = `${week.replaceAll('-', '.')} – ${shift(week, 6).slice(5).replace('-', '.')}`;
         for (const id of ['prev-week', 'next-week', 'this-week']) $(id).disabled = busy;
-        $('save-week').disabled = busy || !ready || !!pending;
-        $('week-draft').hidden = !pending;
-        if (pending) {
-            $('week-draft-time').textContent = `${pending.planDate} ${time(pending.startMinute)}–${time(pending.endMinute)}`;
-            $('week-draft-memo').value = pending.memo;
-        }
+        $('save-week').disabled = busy || !ready;
         const grid = $('week-grid'); grid.replaceChildren();
         const corner = document.createElement('div'); corner.className = 'week-corner'; corner.textContent = t('시간'); grid.append(corner);
         const days = Array.from({length:7}, (_,i) => new Intl.DateTimeFormat(window.plannerI18n.locale(), {weekday:'short'}).format(new Date(`${shift(week,i)}T12:00:00`)));
@@ -121,36 +184,32 @@
         }
         grid.append(axis);
         for (let day = 0; day < 7; day++) {
-            const date = shift(week, day), column = document.createElement('div'); column.className = 'day-column';
+            const date = shift(week, day), column = document.createElement('div'); column.className = 'day-column'; column.dataset.date = date;
             for (let minute = START; minute < END; minute += SLOT) {
                 const slot = document.createElement('button'); slot.className = 'time-slot'; slot.disabled = busy || !ready;
                 slot.setAttribute('aria-label', t('{date} {time} 시간 선택', {date,time:time(minute)}));
                 slot.onclick = () => {
-                    // The last half-hour uses the final full hour so a new block is always one hour.
-                    const start = Math.min(minute, END - 60);
-                    const block = { planDate: date, startMinute: start, endMinute: start + 60, memo: '' };
-                    if (overlaps(block, start, start + 60)) { status(t('이미 기록한 시간과 겹쳐요. 다른 시간대를 선택해 주세요.')); return; }
-                    if (pending?.planDate === date && pending.startMinute === start) {
-                        cancelSelection(); return;
-                    }
+                    const next = blocks.filter(block => block.planDate === date && block.startMinute > minute)
+                        .reduce((end, block) => Math.min(end, block.startMinute), END);
+                    const end = Math.min(minute + 60, next, END);
+                    const block = { planDate: date, startMinute: minute, endMinute: end, memo: '' };
+                    if (blocks.some(other => other.planDate === date && minute < other.endMinute && end > other.startMinute)) { status(t('이미 기록한 시간과 겹쳐요. 다른 시간대를 선택해 주세요.')); return; }
                     pending = block; render();
-                    status(t('일정 내용을 입력한 뒤 추가해 주세요.'));
+                    // Focus synchronously in the tap handler so mobile keyboards open immediately.
+                    document.querySelector('.time-block.is-draft input').focus({preventScroll:true});
+                    status(t('상자에 바로 입력 · 위아래 테두리로 크기 조절 · 왼쪽 손잡이로 이동'));
                 };
                 column.append(slot);
             }
-            if (pending?.planDate === date) {
-                const selection = document.createElement('button'); selection.className = 'time-selection';
-                selection.setAttribute('aria-label', t('선택 취소'));
-                selection.setAttribute('aria-pressed', 'true');
-                selection.textContent = `${time(pending.startMinute)} – ${time(pending.endMinute)}`;
-                position(selection, pending); selection.onclick = cancelSelection; column.append(selection);
-            }
+            if (pending?.planDate === date) column.append(blockElement(pending));
             blocks.filter(block => block.planDate === date).forEach(block => {
                 const element = blockElement(block); element.dataset.index = blocks.indexOf(block);
                 element.querySelectorAll('input, button').forEach(control => { control.disabled = busy; }); column.append(element);
             });
             grid.append(column);
         }
+        scroller.scrollTop = scrollTop; scroller.scrollLeft = scrollLeft;
+        requestAnimationFrame(() => { scroller.scrollTop = scrollTop; scroller.scrollLeft = scrollLeft; });
     }
     async function request(options, start = week) {
         const response = await fetch(`/api/weekly?start=${start}`, options);
@@ -170,23 +229,8 @@
     function cancelSelection() {
         pending = null; render(); status(t('시간 선택을 취소했어요.'));
     }
-    $('cancel-week-draft').onclick = cancelSelection;
-    $('week-draft-memo').oninput = event => {
-        if (!pending || event.isComposing) return;
-        event.target.value = Array.from(event.target.value).slice(0,20).join(''); pending.memo = event.target.value;
-    };
-    $('week-draft-memo').addEventListener('compositionend', event => $('week-draft-memo').oninput(event));
-    $('week-draft').onsubmit = event => {
-        event.preventDefault();
-        if (!pending || busy) return;
-        if (!pending.memo.trim()) { status(t('일정 내용을 입력한 뒤 추가해 주세요.')); $('week-draft-memo').focus(); return; }
-        pending.memo = pending.memo.trim(); blocks.push(pending); pending = null; changed(); render();
-    };
-    $('week-draft').addEventListener('keydown', event => {
-        if (event.key === 'Escape') { event.preventDefault(); cancelSelection(); }
-    });
     $('save-week').onclick = async () => {
-        if (pending) { status(t('선택한 일정을 추가하거나 취소해 주세요.')); return; }
+        pending = null;
         busy = true; render(); status(t('주간 기록을 저장하는 중…'));
         try {
             await request({ method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(blocks) });
@@ -213,7 +257,7 @@
         if (!monthly) requestAnimationFrame(() => sizeWeek(true));
     };
     window.addEventListener('beforeunload', event => { if (dirty || pending?.memo) { event.preventDefault(); event.returnValue = ''; } });
-    new ResizeObserver(() => sizeWeek(true)).observe(scroller);
+    new ResizeObserver(() => sizeWeek(!document.activeElement?.closest('.time-block'))).observe(scroller);
     window.addEventListener('planner-language-change', () => {
         render();
         $('toggle-view').textContent = $('monthly-view').hidden ? t('월간으로 변경') : t('주간으로 변경');

@@ -50,14 +50,14 @@
             add.disabled = monthLoading || loadedMonth !== monthKey() || titles.length >= 5;
             add.onclick = () => editMonth(key, true);
             heading.append(button, add); cell.append(heading);
-            titles.slice(0, 2).forEach((title, index) => {
+            titles.slice(0, 3).forEach((title, index) => {
                 const event = document.createElement('button'); event.className = 'month-event'; event.textContent = title; event.title = title;
                 event.setAttribute('aria-label', t('{date} 일정 {title} 수정', {date:key,title}));
                 event.onclick = () => editMonth(key, false, index); cell.append(event);
             });
-            if (titles.length > 2) {
+            if (titles.length > 3) {
                 const more = document.createElement('button'); more.className = 'month-more';
-                more.textContent = t('+{count}개 더보기', {count:titles.length - 2});
+                more.textContent = t('+{count}개 더보기', {count:titles.length - 3});
                 more.setAttribute('aria-label', t('{date} 일정 전체 {count}개 보기', {date:key,count:titles.length}));
                 more.onclick = () => editMonth(key, false); cell.append(more);
             }

@@ -11,6 +11,12 @@ import org.springframework.security.web.SecurityFilterChain;
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+    private final String rememberKey = java.util.UUID.randomUUID().toString();
+
+    @Bean
+    PlannerRememberMeServices rememberMeServices(MyUserDetailsService users, JpaLoginTokenRepository tokens) {
+        return new PlannerRememberMeServices(rememberKey, users, tokens);
+    }
 
     @Bean
     PasswordEncoder passwordEncoder() {
@@ -18,7 +24,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http, PlannerRememberMeServices rememberMeServices) throws Exception {
         http.csrf((csrf -> csrf.disable()));
         http.authorizeHttpRequests((authorize) ->
                 authorize.requestMatchers("/api/daily/**", "/api/weekly/**", "/api/monthly/**", "/home").authenticated()
@@ -37,6 +43,7 @@ public class SecurityConfig {
                 .defaultSuccessUrl("/home", true)
 
         );
+        http.rememberMe(remember -> remember.key(rememberKey).rememberMeServices(rememberMeServices));
         http.logout( logout -> logout.logoutUrl("/logout").logoutSuccessUrl("/login?logout") );
         return http.build();
     }

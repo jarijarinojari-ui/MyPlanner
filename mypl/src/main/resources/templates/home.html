@@ -5,12 +5,12 @@
 <div class="schedule-title"><p class="eyebrow">MY SCHEDULE</p><button id="toggle-view" aria-pressed="false">월간으로 변경</button></div>
 <div id="weekly-view">
 <div class="month-nav"><button id="prev-week" aria-label="이전 주">←</button><h2 id="week-label"></h2><button id="next-week" aria-label="다음 주">→</button></div>
-<p class="hint">시간 선택 → 내용 입력 → 추가 · 다시 누르면 취소</p>
-<form id="week-draft" hidden aria-label="선택한 시간에 일정 추가"><span id="week-draft-time"></span><input id="week-draft-memo" placeholder="무엇을 했나요?" aria-label="일정 내용, 최대 20자" autocomplete="off"><button id="confirm-week-draft" type="submit">추가</button><button id="cancel-week-draft" type="button">취소</button></form><div class="week-scroll"><div id="week-grid"></div></div>
+<p class="hint">상자에 바로 입력 · 위아래 테두리로 크기 조절 · 왼쪽 손잡이로 이동</p>
+<div class="week-scroll"><div id="week-grid"></div></div>
 <div class="week-footer"><button id="this-week">이번 주</button><button id="save-week" class="primary">주간 기록 저장</button></div>
 <p id="week-status" role="status" aria-live="polite"></p><button id="retry-week" hidden>다시 불러오기</button>
 </div>
-<div id="monthly-view" hidden><div class="month-nav"><button id="prev-month" aria-label="이전 달">←</button><h2 id="month-label"></h2><button id="next-month" aria-label="다음 달">→</button></div><div class="weekdays"><span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span></div><div id="calendar" aria-label="날짜 선택"></div><p id="month-status" role="status" aria-live="polite"></p><button id="retry-month" hidden>일정 다시 불러오기</button><button id="today" class="today">오늘로 돌아가기</button><p class="hint">날짜: 일일 기록 · +: 일정 추가 · 2개 표시, 나머지는 더보기</p></div>
+<div id="monthly-view" hidden><div class="month-nav"><button id="prev-month" aria-label="이전 달">←</button><h2 id="month-label"></h2><button id="next-month" aria-label="다음 달">→</button></div><div class="weekdays"><span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span></div><div id="calendar" aria-label="날짜 선택"></div><p id="month-status" role="status" aria-live="polite"></p><button id="retry-month" hidden>일정 다시 불러오기</button><button id="today" class="today">오늘로 돌아가기</button><p class="hint">날짜: 일일 기록 · +: 일정 추가 · 3개 표시, 나머지는 더보기</p></div>
 </aside>
 <section class="paper daily"><div class="daily-heading"><div><p class="eyebrow">DAILY PLAN</p><h2 id="day-label">오늘의 기록</h2></div><div class="day-navigation"><button id="prev-day" aria-label="이전 날">‹</button><input id="date" type="date" aria-label="기록 날짜" required><button id="next-day" aria-label="다음 날">›</button></div></div><fieldset id="editor" disabled>
 <section class="goals-section"><div class="section-heading"><h3>오늘의 목표</h3><span>오늘 가장 중요하게 생각하는 것</span></div><div class="list-scroll"><div id="goals"></div><button class="add" data-add="goals">+ 목표 추가</button></div></section>
