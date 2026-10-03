@@ -136,7 +136,7 @@
     }
     function setBusy(value) { busy = value; $('editor').disabled = value; $('date').disabled = value; $('prev-day').disabled = value; $('next-day').disabled = value; calendar(); }
     async function request(url, options) {
-        const response = await fetch(url, options);
+        const response = await window.plannerApi(url, options);
         if (response.status === 401 || response.redirected) throw new Error(t('로그인이 만료되었어요. 다시 로그인해 주세요. 입력 내용은 이 화면에 남아 있어요.'));
         if (!response.ok) throw new Error(t('요청을 완료하지 못했어요. 연결 상태를 확인하고 다시 시도해 주세요.'));
         return response;
@@ -186,14 +186,24 @@
     }
     $('prev-day').onclick = () => moveDay(-1);
     $('next-day').onclick = () => moveDay(1);
-    for (const panel of ['schedule', 'daily']) {
-        $(`show-${panel}`).onclick = () => {
-            document.body.classList.toggle('show-daily', panel === 'daily');
-            $('show-schedule').setAttribute('aria-pressed', String(panel === 'schedule'));
-            $('show-daily').setAttribute('aria-pressed', String(panel === 'daily'));
-            requestAnimationFrame(fitLists);
-        };
+    function showPanel(panel) {
+        const focus = panel === 'focus';
+        document.body.classList.toggle('show-daily', panel !== 'schedule');
+        document.body.classList.toggle('show-focus', focus);
+        $('editor').hidden = focus;
+        $('focus-panel').hidden = !focus;
+        for (const name of ['schedule', 'daily', 'focus']) {
+            $(`show-${name}`).setAttribute('aria-pressed', String(panel === name));
+        }
+        $('daily-tab').setAttribute('aria-pressed', String(!focus));
+        $('focus-tab').setAttribute('aria-pressed', String(focus));
+        requestAnimationFrame(fitLists);
     }
+    for (const panel of ['schedule', 'daily', 'focus']) {
+        $(`show-${panel}`).onclick = () => showPanel(panel);
+    }
+    $('daily-tab').onclick = () => showPanel('daily');
+    $('focus-tab').onclick = () => showPanel('focus');
     let listWidth = 0;
     new ResizeObserver(entries => {
         const width = entries[0].contentRect.width;

@@ -19,7 +19,10 @@ public class UserController {
     }
 
     @GetMapping("/home")
-    public String home() { return "home"; }
+    public String home(Model model, Authentication authentication) { model.addAttribute("account", authentication.getName()); return "home"; }
+
+    @GetMapping("/guest")
+    public String guest(Model model) { model.addAttribute("guest", true); return "home"; }
 
     @GetMapping({"/signup", "/singup"})
     public String signup(Model model) {

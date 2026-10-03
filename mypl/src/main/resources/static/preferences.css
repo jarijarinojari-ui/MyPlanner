@@ -39,3 +39,5 @@ html{background:var(--page);color:var(--text)}body{background:var(--page);color:
 }
 
 #calendar .month-more{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.guest-notice{flex:none;margin:0;padding:0 24px 7px;text-align:center;font-size:11px;color:var(--muted)}.guest-entry{text-align:center;grid-column:1/-1;margin:12px 0}.guest-entry a{color:var(--accent)}

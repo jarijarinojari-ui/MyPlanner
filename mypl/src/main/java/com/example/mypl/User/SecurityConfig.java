@@ -27,7 +27,7 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http, PlannerRememberMeServices rememberMeServices) throws Exception {
         http.csrf((csrf -> csrf.disable()));
         http.authorizeHttpRequests((authorize) ->
-                authorize.requestMatchers("/api/daily/**", "/api/weekly/**", "/api/monthly/**", "/home").authenticated()
+                authorize.requestMatchers("/api/focus/**", "/api/daily/**", "/api/weekly/**", "/api/monthly/**", "/home").authenticated()
                         .anyRequest().permitAll()
         );
         http.exceptionHandling(errors -> errors.authenticationEntryPoint((request, response, exception) -> {

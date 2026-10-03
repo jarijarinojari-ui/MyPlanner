@@ -110,11 +110,13 @@ class AuthPageTest {
         return client.send(HttpRequest.newBuilder(URI.create("http://localhost:" + port + path)).GET().build(), HttpResponse.BodyHandlers.ofString());
     }
     @Test void publicPagesRenderAndPlannerRequiresLogin() throws Exception {
-        for (String path : new String[]{"/", "/login", "/signup", "/singup"}) {
+        for (String path : new String[]{"/", "/login", "/signup", "/singup", "/guest"}) {
             var response = get(path); assertEquals(200, response.statusCode(), path);
             assertTrue(response.body().contains("my planner"));
             assertFalse(response.body().contains("th:if"));
         }
+        assertTrue(get("/guest").body().contains("data-guest=\"true\""));
+        assertEquals(401, get("/api/focus?from=2026-10-01T00:00:00Z&until=2026-10-02T00:00:00Z").statusCode());
         assertEquals(302, get("/home").statusCode());
         assertEquals(401, get("/api/weekly?start=2026-09-28").statusCode());
     }

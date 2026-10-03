@@ -16,6 +16,7 @@
             if (block) position(element, block);
         });
         if (pending) { const element = document.querySelector('.time-block.is-draft'); if (element) position(element,pending); }
+        window.dispatchEvent(new CustomEvent('planner-week-sized'));
         if (reset) scroller.scrollTop = Math.max(0, 6 * HEIGHT - 8);
     }
     const key = date => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
@@ -208,11 +209,12 @@
             });
             grid.append(column);
         }
+        window.dispatchEvent(new CustomEvent('planner-week-rendered', {detail:week}));
         scroller.scrollTop = scrollTop; scroller.scrollLeft = scrollLeft;
         requestAnimationFrame(() => { scroller.scrollTop = scrollTop; scroller.scrollLeft = scrollLeft; });
     }
     async function request(options, start = week) {
-        const response = await fetch(`/api/weekly?start=${start}`, options);
+        const response = await window.plannerApi(`/api/weekly?start=${start}`, options);
         if (response.status === 401 || response.redirected) throw new Error(t('다시 로그인해 주세요. 현재 입력한 기록은 화면에 남아 있어요.'));
         if (!response.ok) throw new Error(t('주간 기록 요청에 실패했어요. 연결을 확인하고 다시 시도해 주세요.'));
         return response;
